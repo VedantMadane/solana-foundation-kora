@@ -12,7 +12,7 @@ use spl_token_2022_interface::{
     instruction::{
         approve, burn, close_account, freeze_account, initialize_account3, initialize_mint2,
         initialize_multisig2, mint_to, revoke, set_authority, thaw_account, transfer_checked,
-        AuthorityType,
+        withdraw_excess_lamports, AuthorityType,
     },
 };
 
@@ -32,6 +32,7 @@ enum Token2022Role {
     ThawAccount,
     Pause,
     Resume,
+    WithdrawExcessLamports,
     InitializeExtensionAuthorityMetadataPointer,
     InitializeExtensionAuthorityTransferFee,
     UpdateExtensionAuthorityMetadataPointer,
@@ -53,6 +54,7 @@ impl DrainRole for Token2022Role {
         Self::ThawAccount,
         Self::Pause,
         Self::Resume,
+        Self::WithdrawExcessLamports,
         Self::InitializeExtensionAuthorityMetadataPointer,
         Self::InitializeExtensionAuthorityTransferFee,
         Self::UpdateExtensionAuthorityMetadataPointer,
@@ -76,6 +78,9 @@ impl DrainRole for Token2022Role {
             Self::InitializeMultisig => &mut policy.token_2022.allow_initialize_multisig,
             Self::FreezeAccount | Self::Pause => &mut policy.token_2022.allow_freeze_account,
             Self::ThawAccount | Self::Resume => &mut policy.token_2022.allow_thaw_account,
+            Self::WithdrawExcessLamports => {
+                &mut policy.token_2022.allow_withdraw_excess_lamports
+            }
             Self::InitializeExtensionAuthorityMetadataPointer
             | Self::InitializeExtensionAuthorityTransferFee => {
                 &mut policy.token_2022.allow_initialize_extension_authority
@@ -138,6 +143,14 @@ impl DrainRole for Token2022Role {
             }
             Self::Pause => pausable_ix::pause(&program_id, &mint, actor, &[]).expect("pause"),
             Self::Resume => pausable_ix::resume(&program_id, &mint, actor, &[]).expect("resume"),
+            Self::WithdrawExcessLamports => withdraw_excess_lamports(
+                &program_id,
+                &account,
+                &other,
+                actor,
+                &[],
+            )
+            .expect("withdraw_excess_lamports"),
             Self::InitializeExtensionAuthorityMetadataPointer => {
                 metadata_pointer_ix::initialize(&program_id, &mint, Some(*actor), Some(other))
                     .expect("metadata_pointer initialize")
